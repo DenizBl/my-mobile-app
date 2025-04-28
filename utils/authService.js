@@ -1,28 +1,47 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Mock user database
-let users = [];
+// Helper function to get all users
+const getUsers = async () => {
+  try {
+    const users = await AsyncStorage.getItem('users');
+    return users ? JSON.parse(users) : [];
+  } catch (error) {
+    console.error('Error getting users:', error);
+    return [];
+  }
+};
+
+// Helper function to save users
+const saveUsers = async (users) => {
+  try {
+    await AsyncStorage.setItem('users', JSON.stringify(users));
+  } catch (error) {
+    console.error('Error saving users:', error);
+    throw new Error('Failed to save user data');
+  }
+};
 
 export const registerUser = async (userData) => {
   try {
-    // Check if user already exists
-    const existingUser = users.find(user => user.email === userData.email);
-    if (existingUser) {
-      throw new Error('User with this email already exists');
+    const users = await getUsers();
+    
+    // Check if email already exists
+    if (users.some(user => user.email === userData.email)) {
+      throw new Error('Email already registered');
     }
 
-    // Create new user
+    // Create new user object
     const newUser = {
       id: Date.now().toString(),
-      ...userData,
-      createdAt: new Date().toISOString(),
+      name: userData.name,
+      email: userData.email,
+      password: userData.password, // In a real app, you should hash the password
+      userType: userData.userType,
     };
 
-    // Add to users array
+    // Add new user to users array
     users.push(newUser);
-
-    // Store in AsyncStorage
-    await AsyncStorage.setItem('users', JSON.stringify(users));
+    await saveUsers(users);
 
     return newUser;
   } catch (error) {
@@ -32,9 +51,8 @@ export const registerUser = async (userData) => {
 
 export const loginUser = async (email, password) => {
   try {
-    const user = users.find(
-      user => user.email === email && user.password === password
-    );
+    const users = await getUsers();
+    const user = users.find(u => u.email === email && u.password === password);
 
     if (!user) {
       throw new Error('Invalid email or password');
@@ -46,6 +64,15 @@ export const loginUser = async (email, password) => {
     return user;
   } catch (error) {
     throw error;
+  }
+};
+
+export const logoutUser = async () => {
+  try {
+    await AsyncStorage.removeItem('currentUser');
+  } catch (error) {
+    console.error('Error logging out:', error);
+    throw new Error('Failed to logout');
   }
 };
 

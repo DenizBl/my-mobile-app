@@ -10,27 +10,31 @@ import {
   Platform,
   ScrollView,
   Alert,
+  Image,
+  Dimensions,
 } from 'react-native';
 import { theme } from '../utils/theme';
 import { loginUser } from '../utils/authService';
 
+const { width } = Dimensions.get('window');
+
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loginType, setLoginType] = useState('member'); // 'member' or 'admin'
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const validateForm = () => {
     if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email');
+      Alert.alert('Hata', 'Lütfen e-posta adresinizi girin');
       return false;
     }
     if (!/^\S+@\S+\.\S+$/.test(email)) {
-      Alert.alert('Error', 'Please enter a valid email address');
+      Alert.alert('Hata', 'Lütfen geçerli bir e-posta adresi girin');
       return false;
     }
     if (!password) {
-      Alert.alert('Error', 'Please enter your password');
+      Alert.alert('Hata', 'Lütfen şifrenizi girin');
       return false;
     }
     return true;
@@ -42,15 +46,9 @@ const LoginScreen = ({ navigation }) => {
     setIsLoading(true);
     try {
       const user = await loginUser(email, password);
-      
-      if (user.userType !== loginType) {
-        throw new Error(`Please login as a ${user.userType}`);
-      }
-
-      // Navigate to appropriate dashboard based on user type
       navigation.replace(user.userType === 'admin' ? 'AdminDashboard' : 'MemberDashboard');
     } catch (error) {
-      Alert.alert('Error', error.message || 'Login failed. Please try again.');
+      Alert.alert('Hata', error.message || 'Giriş başarısız. Lütfen tekrar deneyin.');
     } finally {
       setIsLoading(false);
     }
@@ -59,7 +57,7 @@ const LoginScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
         <ScrollView 
@@ -67,64 +65,66 @@ const LoginScreen = ({ navigation }) => {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.content}>
-            <Text style={styles.title}>Library Management</Text>
-            <Text style={styles.subtitle}>Sign in to your account</Text>
-
-            <View style={styles.loginTypeContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.loginTypeButton,
-                  loginType === 'member' && styles.loginTypeButtonActive,
-                ]}
-                onPress={() => setLoginType('member')}
-                disabled={isLoading}
-              >
-                <Text
-                  style={[
-                    styles.loginTypeText,
-                    loginType === 'member' && styles.loginTypeTextActive,
-                  ]}
-                >
-                  Member
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.loginTypeButton,
-                  loginType === 'admin' && styles.loginTypeButtonActive,
-                ]}
-                onPress={() => setLoginType('admin')}
-                disabled={isLoading}
-              >
-                <Text
-                  style={[
-                    styles.loginTypeText,
-                    loginType === 'admin' && styles.loginTypeTextActive,
-                  ]}
-                >
-                  Administrator
-                </Text>
-              </TouchableOpacity>
+            {/* Logo ve Başlık */}
+            <View style={styles.headerContainer}>
+              <Image
+                source={{ uri: 'https://cdn-icons-png.flaticon.com/512/6681/6681204.png' }}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+              <Text style={styles.title}>Hoş Geldiniz</Text>
+              <Text style={styles.subtitle}>Hesabınıza giriş yapın</Text>
             </View>
 
+            {/* Giriş Formu */}
             <View style={styles.form}>
-              <TextInput
-                style={styles.input}
-                placeholder="Email"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                editable={!isLoading}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                editable={!isLoading}
-              />
+              <View style={styles.inputContainer}>
+                <Image
+                  source={{ uri: 'https://cdn-icons-png.flaticon.com/512/3178/3178158.png' }}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="E-posta"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  editable={!isLoading}
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Image
+                  source={{ uri: 'https://cdn-icons-png.flaticon.com/512/483/483408.png' }}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Şifre"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  editable={!isLoading}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeIcon}
+                >
+                  <Image
+                    source={{ 
+                      uri: showPassword 
+                        ? 'https://cdn-icons-png.flaticon.com/512/709/709612.png'
+                        : 'https://cdn-icons-png.flaticon.com/512/709/709610.png'
+                    }}
+                    style={styles.eyeIcon}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity style={styles.forgotPassword}>
+                <Text style={styles.forgotPasswordText}>Şifremi Unuttum</Text>
+              </TouchableOpacity>
 
               <TouchableOpacity 
                 style={[styles.button, isLoading && styles.buttonDisabled]} 
@@ -132,19 +132,16 @@ const LoginScreen = ({ navigation }) => {
                 disabled={isLoading}
               >
                 <Text style={styles.buttonText}>
-                  {isLoading ? 'Signing In...' : 'Sign In'}
+                  {isLoading ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.registerLink}
-                onPress={() => navigation.navigate('Register')}
-                disabled={isLoading}
-              >
-                <Text style={styles.registerText}>
-                  Don't have an account? <Text style={styles.registerTextBold}>Sign Up</Text>
-                </Text>
-              </TouchableOpacity>
+              <View style={styles.registerContainer}>
+                <Text style={styles.registerText}>Hesabınız yok mu? </Text>
+                <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+                  <Text style={styles.registerLink}>Kayıt Ol</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </ScrollView>
@@ -169,78 +166,91 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
     justifyContent: 'center',
   },
+  headerContainer: {
+    alignItems: 'center',
+    marginBottom: theme.spacing.xl * 2,
+  },
+  logo: {
+    width: width * 0.4,
+    height: width * 0.4,
+    marginBottom: theme.spacing.lg,
+  },
   title: {
     ...theme.typography.h1,
     color: theme.colors.primary,
-    textAlign: 'center',
     marginBottom: theme.spacing.sm,
   },
   subtitle: {
     ...theme.typography.body,
     color: theme.colors.text,
-    textAlign: 'center',
-    marginBottom: theme.spacing.xl,
+    opacity: 0.7,
   },
-  loginTypeContainer: {
+  form: {
+    width: '100%',
+  },
+  inputContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: theme.spacing.xl,
-    gap: theme.spacing.md,
-  },
-  loginTypeButton: {
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.lg,
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.md,
+    marginBottom: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
     borderWidth: 1,
     borderColor: theme.colors.primary,
   },
-  loginTypeButtonActive: {
-    backgroundColor: theme.colors.primary,
-  },
-  loginTypeText: {
-    ...theme.typography.body,
-    color: theme.colors.primary,
-  },
-  loginTypeTextActive: {
-    color: theme.colors.white,
-  },
-  form: {
-    gap: theme.spacing.md,
+  inputIcon: {
+    width: 24,
+    height: 24,
+    marginRight: theme.spacing.sm,
   },
   input: {
-    backgroundColor: theme.colors.white,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.gray,
-    ...theme.typography.body,
+    flex: 1,
+    height: 50,
+    color: theme.colors.text,
+    fontSize: 16,
+  },
+  eyeIcon: {
+    width: 24,
+    height: 24,
+    padding: theme.spacing.sm,
+  },
+  forgotPassword: {
+    alignSelf: 'flex-end',
+    marginBottom: theme.spacing.lg,
+  },
+  forgotPasswordText: {
+    color: theme.colors.primary,
+    fontSize: 14,
   },
   button: {
     backgroundColor: theme.colors.primary,
-    padding: theme.spacing.md,
     borderRadius: theme.borderRadius.md,
+    height: 50,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
   },
   buttonDisabled: {
-    backgroundColor: theme.colors.gray,
+    opacity: 0.7,
   },
   buttonText: {
-    color: theme.colors.white,
-    ...theme.typography.body,
-    fontWeight: 'bold',
+    color: theme.colors.surface,
+    fontSize: 16,
+    fontWeight: '600',
   },
-  registerLink: {
-    marginTop: theme.spacing.md,
+  registerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
   },
   registerText: {
     color: theme.colors.text,
-    ...theme.typography.body,
+    fontSize: 14,
   },
-  registerTextBold: {
+  registerLink: {
     color: theme.colors.primary,
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 
